@@ -1,9 +1,35 @@
 import { NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import formats from "../../formats.json";
 
 const MOCK_AI = process.env.MOCK_AI === "true";
 const apiKey = process.env.GEMINI_API_KEY;
+
+// Retry helper with exponential backoff
+async function retryWithBackoff<T>(fn: () => Promise<T>, maxRetries = 3, baseDelay = 2000): Promise<T> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: unknown) {
+      const isLastAttempt = attempt === maxRetries - 1;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isOverloaded = errorMessage.includes("overloaded") || 
+                           errorMessage.includes("503") || 
+                           errorMessage.includes("429") ||
+                           errorMessage.includes("RESOURCE_EXHAUSTED") ||
+                           errorMessage.includes("500");
+      
+      if (isLastAttempt || !isOverloaded) {
+        throw error;
+      }
+      
+      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
+      console.log(`API attempt ${attempt + 1} failed, retrying in ${Math.round(delay)}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error("Max retries exceeded");
+}
 
 export async function POST(req: Request) {
   try {
@@ -75,12 +101,16 @@ export async function POST(req: Request) {
     }
 
     const ai = new GoogleGenAI({ apiKey });
-    const model = process.env.MODEL_PRO || "gemini-2.5-pro";
+    const model = process.env.MODEL_LITE || "gemini-3.5-flash-lite";
 
     const prompt = `You are a viral social media manager.
 Write 5 Instagram Reel scripts for a product in the "${category}" category.
 Product attributes: ${attributes.join(", ")}.
-Language/Tone: ${tone === "hinglish" ? "Hinglish (a mix of Hindi and English, natural conversational style)" : "English (modern, engaging, natural)"}.
+Language/Tone: ${
+      tone === "hindi" ? "Pure Hindi (in Devanagari script or exact Hindi phrasing, professional yet engaging)" :
+      tone === "hinglish" ? "Hinglish (a mix of Hindi and English written in English alphabet, natural conversational style)" : 
+      "English (modern, engaging, natural)"
+    }.
 
 Use these 5 formats EXACTLY:
 ${formats.map(f => `- ${f.format}: ${f.description}`).join("\n")}
@@ -98,36 +128,66 @@ Output the result as a raw JSON array of 5 objects (one for each format). Each o
 
 Return ONLY the JSON array, no markdown wrappers.`;
 
-    // Try twice for valid JSON
-    let attempts = 0;
-    while (attempts < 2) {
-      try {
-        const response = await ai.models.generateContent({
-            model: model,
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
+    const jsonResp = await retryWithBackoff(async () => {
+      const response = await ai.models.generateContent({
+        model: model,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                format: { type: Type.STRING },
+                hook: { type: Type.STRING },
+                scenes: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      time: { type: Type.STRING },
+                      shot: { type: Type.STRING },
+                      voiceover: { type: Type.STRING },
+                      overlay: { type: Type.STRING }
+                    },
+                    required: ["time", "shot", "voiceover", "overlay"]
+                  }
+                },
+                caption: { type: Type.STRING },
+                hashtags: {
+                  type: Type.ARRAY,
+                  items: { type: Type.STRING }
+                }
+              },
+              required: ["format", "hook", "scenes", "caption", "hashtags"]
             }
-        });
-        
-        const text = response.text || "";
-        const jsonResp = JSON.parse(text);
-        
-        if (Array.isArray(jsonResp) && jsonResp.length === 5) {
-            return NextResponse.json(jsonResp);
+          }
         }
-        throw new Error("Invalid format");
-      } catch (e) {
-        attempts++;
-        if (attempts === 2) {
-            console.error("Failed after 2 attempts", e);
-            return NextResponse.json({ error: "Failed to generate scripts" }, { status: 500 });
-        }
+      });
+      
+      const text = response.text || "";
+      const parsed = JSON.parse(text);
+      
+      if (!Array.isArray(parsed) || parsed.length !== 5) {
+        throw new Error("Invalid format - expected array of 5 scripts");
       }
-    }
+      
+      return parsed;
+    });
 
+    return NextResponse.json(jsonResp);
   } catch (error) {
     console.error("API Error:", error);
-    return NextResponse.json({ error: "Failed to process request" }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    
+    if (errorMessage.includes("overloaded") || errorMessage.includes("503") || errorMessage.includes("429")) {
+      return NextResponse.json(
+        { error: "AI model is temporarily overloaded. Please wait 30 seconds and try again. 🔄" }, 
+        { status: 503 }
+      );
+    }
+    
+    return NextResponse.json({ error: "Failed to generate scripts. Please try again." }, { status: 500 });
   }
 }

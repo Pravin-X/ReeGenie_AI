@@ -377,6 +377,14 @@ export function Upload({
           >
             Hinglish
           </button>
+          <button
+            onClick={() => setTone("hindi")}
+            className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
+              tone === "hindi" ? "bg-background text-text shadow-sm border border-border" : "text-muted hover:text-text transparent"
+            }`}
+          >
+            Hindi
+          </button>
         </div>
       </div>
 

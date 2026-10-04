@@ -10,9 +10,12 @@ import { CalendarTool } from "@/components/CalendarTool";
 import { Upload, Analyzing, FormatMatch, Generating, Export } from "@/components/Steps";
 import { Results } from "@/components/Results";
 import { UGCBriefs } from "@/components/UGCBriefs";
+
+import { HookLab } from "@/components/HookLab";
+import { CompetitorSpy } from "@/components/CompetitorSpy";
 import { Logo } from "@/components/Logo";
 
-type ToolId = "script-studio" | "calendar" | "ugc-briefs" | "hook-lab" | "competitor-spy" | "url-to-reels";
+type ToolId = "script-studio" | "calendar" | "ugc-briefs" | "hook-lab" | "competitor-spy";
 
 const TOOLS = [
   { id: "script-studio", name: "Script Studio", icon: Clapperboard, desc: "1 Photo to 5 Scripts" },
@@ -20,7 +23,7 @@ const TOOLS = [
   { id: "ugc-briefs", name: "UGC Briefs", icon: FileText, desc: "PDF for creators" },
   { id: "hook-lab", name: "Hook Lab", icon: FlaskConical, desc: "A/B test your hooks" },
   { id: "competitor-spy", name: "Competitor Spy", icon: Search, desc: "Steal winning formats" },
-  { id: "url-to-reels", name: "URL to Reels", icon: LinkIcon, desc: "Blog/Shopify to video" },
+
 ];
 
 export function Dashboard({ onGoHome }: { onGoHome: () => void }) {
@@ -266,6 +269,11 @@ export function Dashboard({ onGoHome }: { onGoHome: () => void }) {
           <CalendarTool />
         ) : activeTool === "ugc-briefs" ? (
           <UGCBriefs />
+        ) : activeTool === "hook-lab" ? (
+          <HookLab />
+
+        ) : activeTool === "competitor-spy" ? (
+          <CompetitorSpy />
         ) : (
           <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-transparent to-surface/20 relative">
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03]" />

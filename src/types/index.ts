@@ -1,4 +1,4 @@
-export type Tone = "english" | "hinglish";
+export type Tone = "english" | "hinglish" | "hindi";
 
 export interface AnalysisData {
   category: string;

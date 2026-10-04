@@ -4,6 +4,32 @@ import { GoogleGenAI } from "@google/genai";
 const MOCK_AI = process.env.MOCK_AI === "true";
 const apiKey = process.env.GEMINI_API_KEY;
 
+// Retry helper with exponential backoff
+async function retryWithBackoff<T>(fn: () => Promise<T>, maxRetries = 3, baseDelay = 2000): Promise<T> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: unknown) {
+      const isLastAttempt = attempt === maxRetries - 1;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isOverloaded = errorMessage.includes("overloaded") || 
+                           errorMessage.includes("503") || 
+                           errorMessage.includes("429") ||
+                           errorMessage.includes("RESOURCE_EXHAUSTED") ||
+                           errorMessage.includes("500");
+      
+      if (isLastAttempt || !isOverloaded) {
+        throw error;
+      }
+      
+      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
+      console.log(`API attempt ${attempt + 1} failed, retrying in ${Math.round(delay)}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error("Max retries exceeded");
+}
+
 export async function POST(req: Request) {
   try {
     const { imageBase64 } = await req.json();
@@ -34,7 +60,7 @@ export async function POST(req: Request) {
     }
 
     const ai = new GoogleGenAI({ apiKey });
-    const model = process.env.MODEL_PRO || "gemini-2.5-pro";
+    const model = process.env.MODEL_LITE || "gemini-3.5-flash-lite";
 
     const base64Data = imageBase64.split(",")[1];
     if (!base64Data) {
@@ -60,54 +86,52 @@ export async function POST(req: Request) {
       }
     `;
 
-    let attempts = 0;
-    while (attempts < 2) {
-      try {
-        const response = await ai.models.generateContent({
-          model: model,
-          contents: [
-            {
-              role: 'user',
-              parts: [
-                {
-                  inlineData: {
-                    data: base64Data,
-                    mimeType: imageBase64.substring(5, imageBase64.indexOf(";")),
-                  }
-                },
-                {
-                  text: prompt
+    const jsonResp = await retryWithBackoff(async () => {
+      const response = await ai.models.generateContent({
+        model: model,
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                inlineData: {
+                  data: base64Data,
+                  mimeType: imageBase64.substring(5, imageBase64.indexOf(";")),
                 }
-              ]
-            }
-          ],
-          config: {
-            responseMimeType: "application/json",
+              },
+              {
+                text: prompt
+              }
+            ]
           }
-        });
+        ],
+        config: {
+          responseMimeType: "application/json",
+        }
+      });
 
-        const text = response.text || "";
-        let jsonResp;
-        try {
-          jsonResp = JSON.parse(text);
-        } catch {
-          throw new Error("Failed to parse JSON");
-        }
-        
-        if (jsonResp && jsonResp.summary && Array.isArray(jsonResp.days)) {
-            return NextResponse.json(jsonResp);
-        }
+      const text = response.text || "";
+      const parsed = JSON.parse(text);
+      
+      if (!parsed || !parsed.summary || !Array.isArray(parsed.days)) {
         throw new Error("Invalid format");
-      } catch (e) {
-        attempts++;
-        if (attempts === 2) {
-            console.error("Failed after 2 attempts", e);
-            return NextResponse.json({ error: "Failed to generate calendar. Please try again." }, { status: 500 });
-        }
       }
-    }
+      
+      return parsed;
+    });
+
+    return NextResponse.json(jsonResp);
   } catch (error) {
     console.error("Calendar generation error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    
+    if (errorMessage.includes("overloaded") || errorMessage.includes("503") || errorMessage.includes("429")) {
+      return NextResponse.json(
+        { error: "AI model is temporarily overloaded. Please wait 30 seconds and try again. 🔄" }, 
+        { status: 503 }
+      );
+    }
+    
     return NextResponse.json(
       { error: "Failed to generate calendar. Please try again." },
       { status: 500 }
