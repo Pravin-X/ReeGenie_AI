@@ -1,0 +1,164 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-blue: var(--blue);
+
+  --font-serif: var(--font-instrument-serif);
+  --font-sans: var(--font-hanken-grotesk);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+:root {
+  /* Dark Mode Default (Premium editorial) */
+  --background: #0b0a08;
+  --surface: #14120e;
+  --surface-raised: #1b1812;
+  --border: #2c271c;
+  --text: #f3efe6;
+  --muted: #a69f8f;
+  --gold: #f2b632;
+  --gold-soft: #ffd37a;
+  --blue: #3c74ff;
+}
+
+.light {
+  /* Light Mode */
+  --background: #fbf9f6;
+  --surface: #ffffff;
+  --surface-raised: #f3efe6;
+  --border: #e2dcd0;
+  --text: #1a1814;
+  --muted: #6b665c;
+  --gold: #d49a15;
+  --gold-soft: #f2b632;
+  --blue: #2a5de8;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--text);
+  font-family: var(--font-hanken-grotesk), sans-serif;
+}
+
+/* Premium Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* Specific class for inner containers if needed */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--gold-soft);
+}
+
+@keyframes gradient-x {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient-x {
+  animation: gradient-x 3s ease infinite;
+}
+
+/* Stardust / Shooting Stars Background */
+.stardust-wrapper {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: -10;
+  pointer-events: none;
+  background-color: transparent;
+  mask-image: radial-gradient(ellipse at top center, black 10%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at top center, black 10%, transparent 80%);
+}
+
+.stars-small, .stars-medium, .stars-large {
+  position: absolute;
+  inset: -200%;
+  background-image: 
+    radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.7) 1px, transparent 1px),
+    radial-gradient(1.5px 1.5px at 30% 40%, rgba(242,182,50,0.8) 1px, transparent 1px),
+    radial-gradient(1px 1px at 50% 60%, rgba(255,255,255,0.6) 1px, transparent 1px),
+    radial-gradient(2px 2px at 70% 80%, rgba(255,255,255,0.5) 1px, transparent 1px),
+    radial-gradient(1px 1px at 90% 10%, rgba(242,182,50,0.7) 1px, transparent 1px),
+    radial-gradient(1.5px 1.5px at 20% 80%, rgba(255,255,255,0.8) 1px, transparent 1px),
+    radial-gradient(1px 1px at 40% 10%, rgba(255,255,255,0.6) 1px, transparent 1px),
+    radial-gradient(2px 2px at 60% 30%, rgba(242,182,50,0.9) 1px, transparent 1px),
+    radial-gradient(1px 1px at 80% 50%, rgba(255,255,255,0.7) 1px, transparent 1px),
+    radial-gradient(1px 1px at 15% 90%, rgba(255,255,255,0.5) 1px, transparent 1px),
+    radial-gradient(1.5px 1.5px at 85% 90%, rgba(255,255,255,0.8) 1px, transparent 1px);
+}
+
+.stars-small {
+  background-size: 150px 150px;
+  animation: driftUp 60s linear infinite, twinkle 1.5s ease-in-out infinite;
+  opacity: 0.5;
+}
+
+.stars-medium {
+  background-size: 300px 300px;
+  animation: driftUp 45s linear infinite, twinkle 2s ease-in-out infinite 0.5s;
+  opacity: 0.7;
+}
+
+.stars-large {
+  background-size: 500px 500px;
+  animation: driftUp 30s linear infinite, twinkle 2.5s ease-in-out infinite 1s;
+  opacity: 0.9;
+}
+
+/* Glowing shooting star */
+
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.1; }
+  50% { opacity: 1; }
+}
+
+@keyframes driftUp {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-500px);
+  }
+}
