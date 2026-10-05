@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { GoogleGenAI, Type } from "@google/genai";
 import formats from "../../formats.json";
 
-export const maxDuration = 60;
 
 
 // Retry helper with exponential backoff
