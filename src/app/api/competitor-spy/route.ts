@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 
-const MOCK_AI = process.env.MOCK_AI === "true";
-const apiKey = process.env.GEMINI_API_KEY;
-const firecrawlKey = process.env.FIRECRAWL_API_KEY;
 
 // Retry helper with exponential backoff
 async function retryWithBackoff<T>(fn: () => Promise<T>, maxRetries = 3, baseDelay = 2000): Promise<T> {
@@ -32,6 +29,9 @@ async function retryWithBackoff<T>(fn: () => Promise<T>, maxRetries = 3, baseDel
 }
 
 export async function POST(req: Request) {
+  const MOCK_AI = process.env.MOCK_AI === "true";
+  const apiKey = process.env.GEMINI_API_KEY;
+  const firecrawlKey = process.env.FIRECRAWL_API_KEY;
   try {
     const { url, tone = "english" } = await req.json();
 

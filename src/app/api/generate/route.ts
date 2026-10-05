@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { GoogleGenAI, Type } from "@google/genai";
 import formats from "../../formats.json";
 
-const MOCK_AI = process.env.MOCK_AI === "true";
-const apiKey = process.env.GEMINI_API_KEY;
 
 // Retry helper with exponential backoff
 async function retryWithBackoff<T>(fn: () => Promise<T>, maxRetries = 3, baseDelay = 2000): Promise<T> {
@@ -32,6 +30,8 @@ async function retryWithBackoff<T>(fn: () => Promise<T>, maxRetries = 3, baseDel
 }
 
 export async function POST(req: Request) {
+  const MOCK_AI = process.env.MOCK_AI === "true";
+  const apiKey = process.env.GEMINI_API_KEY;
   try {
     const { category, attributes, tone } = await req.json();
 
