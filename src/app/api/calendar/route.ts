@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 
+export const maxDuration = 60;
+
 
 
 // Retry helper with exponential backoff

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { GoogleGenAI, Type } from "@google/genai";
 import formats from "../../formats.json";
 
+export const maxDuration = 60;
+
 
 // Retry helper with exponential backoff
 async function retryWithBackoff<T>(fn: () => Promise<T>, maxRetries = 3, baseDelay = 2000): Promise<T> {
